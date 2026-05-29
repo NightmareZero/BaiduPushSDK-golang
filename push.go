@@ -44,7 +44,8 @@ type AndroidNotification struct {
 	//open_type为2时才有效，Android端SDK会把pkg_content字符串转换成Android Intent,
 	//通过该Intent打开对应app组件，所以pkg_content字符串格式必须遵循Intent uri格式，最简单的方法可以通过Intent方法toURI()获取
 	PkgContent    string                 `json:"pkg_content"`
-	CustomContent map[string]interface{} `json:"custom_content"` //自定义内容，键值对，Json对象形式(可选)；在android客户端，这些键值对将以Intent中的extra进行传递。
+	CustomContent   map[string]interface{} `json:"custom_content"`
+	TargetChannelId string                 `json:"target_channel_id"`
 }
 
 // 推送消息到单台设备
@@ -52,7 +53,7 @@ func (c *BaiduPushClient) PushMsgToSingleDevice(request PushMsgToSingleDeviceReq
 	var resp PushMsgToSingleDeviceJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "push", "/single_device", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "push", "/single_device", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.PushMsgToSingleDeviceResponse, nil
 	} else {
@@ -66,7 +67,7 @@ func (c *BaiduPushClient) PushMsgToAllDevice(request PushMsgToAllRequest) (*Push
 	var resp PushMsgToAllJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "push", "/all", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "push", "/all", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.PushMsgToAllResponse, nil
 	} else {
@@ -80,7 +81,7 @@ func (c *BaiduPushClient) PushMsgToTag(request PushMsgToTagRequest) (*PushMsgToT
 	var resp PushMsgToTagJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "push", "/tags", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "push", "/tags", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.PushMsgToTagResponse, nil
 	} else {
@@ -94,7 +95,7 @@ func (c *BaiduPushClient) PushBatchUniMsg(request PushBatchUniMsgRequest) (*Push
 	var resp PushBatchUniMsgJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "push", "/batch_device", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "push", "/batch_device", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.PushBatchUniMsgResponse, nil
 	} else {
@@ -108,7 +109,7 @@ func (c *BaiduPushClient) QueryMsgStatus(request QueryMsgStatusRequest) (*QueryM
 	var resp QueryMsgStatusJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "report", "/query_msg_status", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "report", "/query_msg_status", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryMsgStatusResponse, nil
 	} else {
@@ -122,7 +123,7 @@ func (c *BaiduPushClient) QueryTimerRecords(request QueryTimerRecordsRequest) (*
 	var resp QueryTimerRecordsJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "report", "/query_timer_records", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "report", "/query_timer_records", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryTimerRecordsResponse, nil
 	} else {
@@ -136,7 +137,7 @@ func (c *BaiduPushClient) QueryTopicRecords(request QueryTopicRecordsRequest) (*
 	var resp QueryTopicRecordsJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "report", "/query_topic_records", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "report", "/query_topic_records", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryTopicRecordsResponse, nil
 	} else {
@@ -150,7 +151,7 @@ func (c *BaiduPushClient) QueryTags(request QueryTagsRequest) (*QueryTagsRespons
 	var resp QueryTagsJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "app", "/query_tags", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "app", "/query_tags", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryTagsResponse, nil
 	} else {
@@ -164,7 +165,7 @@ func (c *BaiduPushClient) CreateTag(request CreateTagRequest) (*CreateTagRespons
 	var resp CreateTagJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "app", "/create_tag", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "app", "/create_tag", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.CreateTagResponse, nil
 	} else {
@@ -178,7 +179,7 @@ func (c *BaiduPushClient) DeleteTag(request DeleteTagRequest) (*DeleteTagRespons
 	var resp DeleteTagJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "app", "/del_tag", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "app", "/del_tag", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.DeleteTagResponse, nil
 	} else {
@@ -192,7 +193,7 @@ func (c *BaiduPushClient) AddDevicesToTag(request AddDevicesToTagRequest) (*AddD
 	var resp AddDevicesToTagJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "tag", "/add_devices", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "tag", "/add_devices", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.AddDevicesToTagResponse, nil
 	} else {
@@ -206,7 +207,7 @@ func (c *BaiduPushClient) DeleteDevicesFromTag(request DeleteDevicesFromTagReque
 	var resp DeleteDevicesFromTagJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "tag", "/del_devices", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "tag", "/del_devices", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.DeleteDevicesFromTagResponse, nil
 	} else {
@@ -220,7 +221,7 @@ func (c *BaiduPushClient) QueryDeviceNumInTag(request QueryDeviceNumInTagRequest
 	var resp QueryDeviceNumInTagJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "tag", "/device_num", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "tag", "/device_num", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryDeviceNumInTagResponse, nil
 	} else {
@@ -234,7 +235,7 @@ func (c *BaiduPushClient) QueryTimerList(request QueryTimerListRequest) (*QueryT
 	var resp QueryTimerListJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "timer", "/query_list", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "timer", "/query_list", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryTimerListResponse, nil
 	} else {
@@ -248,7 +249,7 @@ func (c *BaiduPushClient) CancelTimerJob(timerId string) (*CancelTimerJobRespons
 	var resp CancelTimerJobResponse
 	params := c.baseParams(nil)
 	params.AddUnescaped("timer_id", timerId)
-	err := CallApiServer("POST", API_SERVER, "timer", "/cancel", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "timer", "/cancel", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp, nil
 	} else {
@@ -261,7 +262,7 @@ func (c *BaiduPushClient) QueryTopicList(request QueryTopicListRequest) (*QueryT
 	var resp QueryTopicListJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "topic", "/query_list", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "topic", "/query_list", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryTopicListResponse, nil
 	} else {
@@ -274,7 +275,7 @@ func (c *BaiduPushClient) QueryTopicList(request QueryTopicListRequest) (*QueryT
 func (c *BaiduPushClient) QueryStatisticDevice() (*QueryStatisticDeviceResponse, error) {
 	var resp QueryStatisticDeviceJSONResponse
 	params := c.baseParams(nil)
-	err := CallApiServer("POST", API_SERVER, "report", "/statistic_device", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "report", "/statistic_device", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryStatisticDeviceResponse, nil
 	} else {
@@ -288,7 +289,7 @@ func (c *BaiduPushClient) QueryStatisticTopic(request QueryStatisticTopicRequest
 	var resp QueryStatisticTopicJSONResponse
 	params := c.baseParams(nil)
 	params = request.AddToParams(params)
-	err := CallApiServer("POST", API_SERVER, "report", "/statistic_topic", params, c.secretKey, &resp)
+	err := CallApiServer("POST", API_SERVER, "report", "/statistic_topic", params, c.secretKey, c.debug, &resp)
 	if err == nil {
 		return &resp.QueryStatisticTopicResponse, nil
 	} else {

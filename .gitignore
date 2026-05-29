@@ -1,0 +1,15 @@
+# Binary
+*.exe
+*.exe~
+
+# Editor
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test
+*.out
+*.test

@@ -11,68 +11,88 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
 	"net/url"
+	"runtime"
 	"sort"
-	//"strconv"
 	"strings"
 )
 
+// phpURLEncode 实现与 PHP urlencode 兼容的编码。
+// 百度官方签名算法要求以 PHP urlencode 为准。
+func phpURLEncode(s string) string {
+	encoded := url.QueryEscape(s)
+	// PHP urlencode: ~ 会被编码为 %7E
+	encoded = strings.ReplaceAll(encoded, "~", "%7E")
+	// PHP urlencode: 空格编码为 + 而非 %20
+	encoded = strings.ReplaceAll(encoded, "%20", "+")
+	return encoded
+}
+
+// userAgent 生成符合百度要求的 User-Agent 格式:
+//
+//	BCCS_SDK/3.0 (操作系统) 开发语言/版本 (SDK名称及版本)
+func userAgent() string {
+	return fmt.Sprintf("BCCS_SDK/3.0 (%s) %s (%s/%s)",
+		runtime.GOOS, runtime.Version(), "BaiduPushSDK-golang", "1.0.0")
+}
+
 //执行http请求
-func httpExecute(
-	method string, urlStr string, contentType string, body string, oauthParams *OrderedParams) (*http.Response, error) {
-	// Create base request.
+func httpExecute(method string, urlStr string, params *OrderedParams, debug bool) (*http.Response, error) {
 	v := url.Values{}
-	for _, key := range oauthParams.Keys() {
-		v.Add(key, oauthParams.Get(key))
+	for _, key := range params.Keys() {
+		v.Add(key, params.Get(key))
 	}
-	req, err := http.NewRequest(method, urlStr, strings.NewReader(v.Encode()))
-	req.Header.Set("Content-Type", "application/x-www-form-urlencoded; charset=utf-8")
-	req.Header.Add("User-Agent", "BCCS_SDK/3.0 Mozilla/5.0 (Windows NT 6.1; WOW64; rv:12.0) Gecko/20100101 Firefox/12.0")
+	body := v.Encode()
+
+	req, err := http.NewRequest(method, urlStr, strings.NewReader(body))
 	if err != nil {
 		return nil, errors.New("NewRequest failed: " + err.Error())
 	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded;charset=utf-8")
+	req.Header.Set("User-Agent", userAgent())
+
+	if debug {
+		fmt.Println("[DEBUG] Request URL:", urlStr)
+		fmt.Println("[DEBUG] Request Body:", body)
+		fmt.Println("[DEBUG] User-Agent:", req.Header.Get("User-Agent"))
+	}
+
 	HttpClient := &http.Client{}
 	resp, err := HttpClient.Do(req)
 	if err != nil {
 		return nil, errors.New("Do: " + err.Error())
 	}
 
-	debugHeader := ""
-	for k, vals := range req.Header {
-		for _, val := range vals {
-			debugHeader += "[key: " + k + ", val: " + val + "]"
-		}
-	}
-
-	// StatusMultipleChoices is 300, any 2xx response should be treated as success
 	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
 		defer resp.Body.Close()
-		bytes, _ := ioutil.ReadAll(resp.Body)
+		bytes, _ := io.ReadAll(resp.Body)
+		if debug {
+			fmt.Println("[DEBUG] Response Status:", resp.StatusCode)
+			fmt.Println("[DEBUG] Response Body:", string(bytes))
+		}
 		return resp, errors.New(string(bytes))
 	}
 	return resp, err
 }
 
 //获得HTTP请求的body部分内容
-func getBody(method, url string, oauthParams *OrderedParams) (*string, error) {
-	resp, err := httpExecute(method, url, "", "", oauthParams)
+func getBody(method, url string, params *OrderedParams, debug bool) (*string, error) {
+	resp, err := httpExecute(method, url, params, debug)
 	if err != nil {
 		return nil, err
 	}
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(resp.Body)
 	resp.Body.Close()
 	if err != nil {
 		return nil, errors.New(err.Error())
 	}
 	bodyStr := string(bodyBytes)
-	/*
-		if c.debug {
-			fmt.Printf("STATUS: %d %s\n", resp.StatusCode, resp.Status)
-			fmt.Println("BODY RESPONSE: " + bodyStr)
-		}
-	*/
+	if debug {
+		fmt.Println("[DEBUG] Status:", resp.StatusCode, resp.Status)
+		fmt.Println("[DEBUG] Body Response:", bodyStr)
+	}
 	return &bodyStr, nil
 }
 
@@ -86,19 +106,22 @@ func requestString(method string, urlPath string, secretkey string, params *Orde
 }
 
 //调用API
-func CallApiServer(httpMethod string, server string, class string, method string, params *OrderedParams, secretkey string, i interface{}) error {
+func CallApiServer(httpMethod string, server string, class string, method string, params *OrderedParams, secretkey string, debug bool, i interface{}) error {
 	reqString := requestString(httpMethod, server+class+method, secretkey, params)
 	h := md5.New()
-	h.Write([]byte(url.QueryEscape(reqString)))
+	h.Write([]byte(phpURLEncode(reqString)))
 	signature := hex.EncodeToString(h.Sum(nil))
 	params.Add("sign", signature)
-	result, err := getBody("POST", server+class+method, params)
+	if debug {
+		fmt.Println("[DEBUG] Sign Base String:", reqString)
+		fmt.Println("[DEBUG] Signature:", signature)
+	}
+	result, err := getBody("POST", server+class+method, params, debug)
 	if err == nil {
 		json.Unmarshal([]byte(*result), &i)
 		return nil
-	} else {
-		return err
 	}
+	return err
 }
 
 //排序后的参数列表
@@ -124,7 +147,7 @@ func (o *OrderedParams) Keys() []string {
 }
 
 func (o *OrderedParams) Add(key, value string) {
-	o.AddUnescaped(key, url.QueryEscape(value))
+	o.AddUnescaped(key, value)
 }
 
 func (o *OrderedParams) AddUnescaped(key, value string) {

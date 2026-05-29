@@ -6,5 +6,5 @@
 package push
 
 const (
-	API_SERVER = "http://api.tuisong.baidu.com/rest/3.0/"
+	API_SERVER = "https://api.tuisong.baidu.com/rest/3.0/"
 )

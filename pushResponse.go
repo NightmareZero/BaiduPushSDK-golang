@@ -33,9 +33,9 @@ type PushMsgToSingleDeviceJSONResponse struct {
 }
 
 type PushMsgToAllResponse struct {
-	MsgId    string
-	TimerId  string
-	SendTime int64
+	MsgId    string `json:"msg_id"`
+	TimerId  string `json:"timer_id"`
+	SendTime int64  `json:"send_time"`
 }
 
 type PushMsgToAllJSONResponse struct {
@@ -91,11 +91,11 @@ type QueryTopicRecordsJSONResponse struct {
 }
 
 type TimerResultInfo struct {
-	timerId   string `json:"timer_id"`
-	sendTime  int64  `json:"send_time"`
-	message   string `json:"msg"`
-	msgTpye   int    `json:"msg_type"`
-	rangeType int    `json:"range_type"`
+	TimerId   string `json:"timer_id"`
+	SendTime  int64  `json:"send_time"`
+	Message   string `json:"msg"`
+	MsgType   int    `json:"msg_type"`
+	RangeType int    `json:"range_type"`
 }
 
 type QueryTimerListResponse struct {
